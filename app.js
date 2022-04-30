@@ -5,7 +5,10 @@ const User = require("./model/user");
 const bcrypt = require("bcryptjs");
 const app = express();
 const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
+const isAuth = require("./middleware/auth");
 app.use(express.json());
+app.use(cookieParser());
 app.get("/", (req, res) => {
   res.send("<h1>hello from auth system</h1>");
 });
@@ -71,13 +74,14 @@ app.post("/login", async (req, res) => {
       user.token = token;
       user.password = undefined;
       const options = {
-          httpOnly: true,
-      }
-    return  res.status(200).json({
-          status:true,
-          message:"you are authrized",
-          data:user
-      })
+        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+      };
+      return res.status(200).cookie("token", token, options).json({
+        status: true,
+        message: "you are authrized",
+        data: user,
+      });
     }
     res.status(400).send("Email or Password is incorrect");
   } catch (error) {
@@ -85,6 +89,12 @@ app.post("/login", async (req, res) => {
   }
 });
 
-
+app.get("/dashboard", isAuth, async (req, res) => {
+  return res.status(200).json({
+    status: true,
+    message: "welcome to dashboard",
+    data: req?.user,
+  });
+});
 
 module.exports = app;
